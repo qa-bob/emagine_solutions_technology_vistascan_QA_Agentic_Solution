@@ -1,23 +1,30 @@
-﻿{
-    "name":  "Emagine Solutions Technology",
-    "url":  "http://www.emaginesolutionstech.com",
-    "description":  "",
-    "industry":  "",
+{
+    "url":  "https://emaginest.com",
+    "description":  "Mobile ultrasound and pregnancy tracking technology — The Journey app and Vistascan platform",
+    "industry":  "Medical Technology / Digital Health",
+    "skipVisual":  false,
     "hasContactForm":  true,
     "expectedNavItems":  [
-
+                             "The Journey Pregnancy App",
+                             "The Journey Remote Patient",
+                             "Aria AI",
+                             "White-labeling App",
+                             "Company",
+                             "Blog",
+                             "Press",
+                             "Contact"
                          ],
+    "name":  "Emagine Solutions Technology",
+    "skipForms":  false,
+    "auth":  {
+                 "username":  "",
+                 "password":  "",
+                 "loginUrl":  "",
+                 "required":  false
+             },
     "viewports":  [
                       "desktop",
                       "mobile",
                       "tablet"
-                  ],
-    "skipVisual":  false,
-    "skipForms":  false,
-    "auth":  {
-                 "required":  false,
-                 "loginUrl":  "",
-                 "username":  "",
-                 "password":  ""
-             }
+                  ]
 }

@@ -1,0 +1,112 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Test suite to run (leave empty for all)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - smoke
+          - navigation
+          - forms
+          - functional
+          - visual
+          - responsive
+
+jobs:
+  test:
+    name: Playwright — ${{ matrix.project }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium-desktop, mobile-chrome, tablet]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: |
+          if [ -n "${{ github.event.inputs.suite }}" ]; then
+            npm run test:${{ github.event.inputs.suite }} -- --project=${{ matrix.project }}
+          else
+            npx playwright test --project=${{ matrix.project }}
+          fi
+        env:
+          CI: true
+          SITE_URL: ${{ vars.SITE_URL || 'http://www.emaginesolutionstech.com' }}
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.project }}
+          path: test-results/
+          retention-days: 7
+
+  smoke-gate:
+    name: Smoke Gate (required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: []
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        run: npm run test:smoke -- --project=chromium-desktop
+        env:
+          CI: true
+          SITE_URL: ${{ vars.SITE_URL || 'http://www.emaginesolutionstech.com' }}
+
+      - name: Upload smoke report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-report
+          path: playwright-report/
+          retention-days: 7
