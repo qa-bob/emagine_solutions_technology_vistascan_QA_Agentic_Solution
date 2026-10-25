@@ -63,7 +63,7 @@ test.describe('Contact Form @forms', () => {
   test('contact form has required fields (name, email) @forms', async ({ contactPage, siteConfig, page }) => {
     // Navigate to the known demo/contact page first
     await page.goto(siteConfig.url.replace(/\/$/, '') + '/request-a-demo.html', {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
       timeout: 20_000,
     }).catch(() => null);
     let form = await contactPage.findContactForm();
@@ -116,7 +116,7 @@ test.describe('Contact Form @forms', () => {
 
   test('contact form has a submit button @forms', async ({ contactPage, siteConfig, page }) => {
     await page.goto(siteConfig.url.replace(/\/$/, '') + '/request-a-demo.html', {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
       timeout: 20_000,
     }).catch(() => null);
     let form = await contactPage.findContactForm();
@@ -247,29 +247,31 @@ test.describe('Contact Form @forms', () => {
       .locator('button[type="submit"], input[type="submit"], button:not([type="button"]):not([type="reset"])')
       .first();
 
-    // Intercept any navigation that would result from form submission
-    let navigationTriggered = false;
-    page.on('request', (req) => {
-      if (req.resourceType() === 'document' && req.method() === 'POST') {
-        navigationTriggered = true;
+    // Block every non-GET request so nothing can actually be submitted, even
+    // if the form posts via fetch/XHR or validation is missing.
+    const submissionAttempts: string[] = [];
+    await page.route('**/*', async (route) => {
+      const req = route.request();
+      if (req.method() !== 'GET' && req.method() !== 'HEAD') {
+        submissionAttempts.push(`${req.method()} ${req.url()}`);
+        await route.abort();
+        return;
       }
+      await route.continue();
     });
 
     await submitBtn.click({ force: true });
 
-    // Wait briefly to allow validation messages to appear
-    await page.waitForTimeout(500);
-
-    // Check that we're still on the same page (form was NOT submitted)
+    // The empty form should be stopped by validation before anything is sent
     expect(
-      navigationTriggered,
-      'Clicking submit on an empty form should NOT navigate away (validation should prevent submission)'
-    ).toBeFalsy();
+      submissionAttempts.filter((a) => a.startsWith('POST')),
+      'Clicking submit on an empty form should NOT send a request (validation should prevent submission)'
+    ).toHaveLength(0);
 
     // Check for HTML5 validation API on required fields
     const firstRequired = form.locator('[required]').first();
     if (await firstRequired.count() > 0) {
-      const isValid = await firstRequired.evaluate<boolean>((el) => {
+      const isValid = await firstRequired.evaluate((el) => {
         return (el as HTMLInputElement).validity?.valid ?? true;
       });
       expect(
