@@ -39,7 +39,7 @@ export class ContactFormPage extends BasePage {
     if (await withEmail.count() > 0) return withEmail.first();
 
     // Strategy 3: any form at all (including JS-rendered forms — wait briefly)
-    await this.page.waitForLoadState('networkidle').catch(() => null);
+    await this.page.waitForLoadState('load').catch(() => null);
     const anyForm = this.page.locator('form').first();
     if (await anyForm.count() > 0) return anyForm;
 
@@ -72,7 +72,7 @@ export class ContactFormPage extends BasePage {
         (await el.getAttribute('id')) ??
         (await el.getAttribute('placeholder')) ??
         `field-${i}`;
-      const type = (await el.getAttribute('type')) ?? (await el.evaluate<string>((node) => node.tagName.toLowerCase()));
+      const type = (await el.getAttribute('type')) ?? (await el.evaluate((node) => node.tagName.toLowerCase()));
       const required =
         (await el.getAttribute('required')) !== null ||
         (await el.getAttribute('aria-required')) === 'true';
